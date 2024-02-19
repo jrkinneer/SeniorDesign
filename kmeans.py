@@ -2,7 +2,6 @@ import numpy as np
 import random
 import scipy
 from tqdm import tqdm
-import cv2
 
 def kmeans_multiple(X, K, iters, R):
     orig_1 = X.shape[0]

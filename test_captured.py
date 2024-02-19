@@ -38,15 +38,19 @@ for filename in os.listdir("captured_images"):
     #run k means to get binary segmentation
     red_segmented, red_means, ids = kmeans_multiple_grayscale(red, 2, 10, 10)
     
+    grey_segmented, grey_means, ids = kmeans_multiple_grayscale(cv2.cvtColor(out, cv2.COLOR_BGR2GRAY), 2, 10, 10)
+    
     #get the color of the darkest of the two binary segments
     darkest_red = np.min(red_means)
     darkest_green = np.min(green_means)
     darkest_blue = np.min(blue_means)
+    darkest_grey = np.min(grey_means)
     
     #initial all black masks
     red_mask = np.zeros_like(img)
     green_mask = np.zeros_like(img)
     blue_mask = np.zeros_like(img)
+    grey_mask = np.zeros_like(img)
     
     #blurs red portion of img
     blurred = cv2.GaussianBlur(out[:,:,0], (7,7), 0)
@@ -59,6 +63,7 @@ for filename in os.listdir("captured_images"):
     blurred_mask = np.zeros_like(img)
     final_mask_blur = np.zeros_like(img)
     final_mask_color = np.zeros_like(img)
+    final_mask_grey = np.zeros_like(img)
     
     for x in range(img.shape[0]):
         for y in range(img.shape[1]):
@@ -79,18 +84,23 @@ for filename in os.listdir("captured_images"):
                 
             if blurred_segmented[x][y] == darkest_blur or red_segmented[x][y] == darkest_red:
                 final_mask_blur[x][y] = img[x][y]
+                
+            if grey_segmented[x][y] == darkest_grey:
+                final_mask_grey[x][y] = img[x][y]
     
-    cv2.imwrite("results_blue/masks/blurred/img"+str(img_index)+".png", blurred_mask)
-    cv2.imwrite("results_blue/masks/combined/img"+str(img_index)+".png", final_mask_blur)
-    cv2.imwrite("results_blue/masks/red/img"+str(img_index)+".png", red_mask)
-    cv2.imwrite("results_blue/masks/blue/img"+str(img_index)+".png", blue_mask)
-    cv2.imwrite("results_blue/masks/green/img"+str(img_index)+".png", green_mask)
-    cv2.imwrite("results_blue/masks/combined_rgb/img"+str(img_index)+".png", final_mask_color)
+    cv2.imwrite("results/masks/blurred/img_"+str(img_index)+".png", blurred_mask)
+    cv2.imwrite("results/masks/combined/img_"+str(img_index)+".png", final_mask_blur)
+    cv2.imwrite("results/masks/red/img_"+str(img_index)+".png", red_mask)
+    cv2.imwrite("results/masks/blue/img_"+str(img_index)+".png", blue_mask)
+    cv2.imwrite("results/masks/green/img_"+str(img_index)+".png", green_mask)
+    cv2.imwrite("results/masks/combined_rgb/img_"+str(img_index)+".png", final_mask_color)
+    cv2.imwrite("results/masks/rgb_to_grey/img_"+str(img_index)+".png", final_mask_grey)
     
-    cv2.imwrite("results_blue/segments/blurred/img"+str(img_index)+".png", blurred_segmented)
-    cv2.imwrite("results_blue/segments/red/img"+str(img_index)+".png", red_segmented)
-    cv2.imwrite("results_blue/segments/blue/img"+str(img_index)+".png", blue_segmented)
-    cv2.imwrite("results_blue/segments/green/img"+str(img_index)+".png", green_segmented)
+    cv2.imwrite("results/segments/blurred/img_"+str(img_index)+".png", blurred_segmented)
+    cv2.imwrite("results/segments/red/img_"+str(img_index)+".png", red_segmented)
+    cv2.imwrite("results/segments/blue/img_"+str(img_index)+".png", blue_segmented)
+    cv2.imwrite("results/segments/green/img_"+str(img_index)+".png", green_segmented)
+    cv2.imwrite("results/segments/rgb_to_grey/img_"+str(img_index)+".png", grey_segmented)
     
     stop = time.time()
     print("finished loop iteration ", loop_index, "for first loop, time elapsed = ", stop-start)
