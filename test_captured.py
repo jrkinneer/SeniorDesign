@@ -1,15 +1,19 @@
 import numpy as np
 import cv2
-from kmeans import kmeans_multiple, kmeans_multiple_grayscale
+from kmeans import kmeans_multiple_grayscale
 import os
 import time
 
 #create combination of color with gaussian blur 
-loop_index = 0     
-for filename in os.listdir("captured_images"):
+loop_index = 0  
+
+COLOR = "_blue"
+INPUT_PATH = "captured_images" + COLOR
+ 
+for filename in os.listdir(INPUT_PATH):
     start = time.time()
     
-    f = os.path.join('captured_images', filename)
+    f = os.path.join(INPUT_PATH, filename)
     
     s = filename.split("_")
     s2 = s[1].split(".")
@@ -84,23 +88,23 @@ for filename in os.listdir("captured_images"):
                 
             if blurred_segmented[x][y] == darkest_blur or red_segmented[x][y] == darkest_red:
                 final_mask_blur[x][y] = img[x][y]
-                
             if grey_segmented[x][y] == darkest_grey:
                 final_mask_grey[x][y] = img[x][y]
     
-    cv2.imwrite("results/masks/blurred/img_"+str(img_index)+".png", blurred_mask)
-    cv2.imwrite("results/masks/combined/img_"+str(img_index)+".png", final_mask_blur)
-    cv2.imwrite("results/masks/red/img_"+str(img_index)+".png", red_mask)
-    cv2.imwrite("results/masks/blue/img_"+str(img_index)+".png", blue_mask)
-    cv2.imwrite("results/masks/green/img_"+str(img_index)+".png", green_mask)
-    cv2.imwrite("results/masks/combined_rgb/img_"+str(img_index)+".png", final_mask_color)
-    cv2.imwrite("results/masks/rgb_to_grey/img_"+str(img_index)+".png", final_mask_grey)
+    cv2.imwrite("results"+COLOR+"/masks/blurred/img_"+str(img_index)+".png", blurred_mask)
+    cv2.imwrite("results"+COLOR+"/masks/combined/img_"+str(img_index)+".png", final_mask_blur)
+    cv2.imwrite("results"+COLOR+"/masks/red/img_"+str(img_index)+".png", red_mask)
+    cv2.imwrite("results"+COLOR+"/masks/blue/img_"+str(img_index)+".png", blue_mask)
+    cv2.imwrite("results"+COLOR+"/masks/green/img_"+str(img_index)+".png", green_mask)
+    cv2.imwrite("results"+COLOR+"/masks/combined_rgb/img_"+str(img_index)+".png", final_mask_color)
+    cv2.imwrite("results"+COLOR+"/masks/rgb_to_grey/img_"+str(img_index)+".png", final_mask_grey)
     
-    cv2.imwrite("results/segments/blurred/img_"+str(img_index)+".png", blurred_segmented)
-    cv2.imwrite("results/segments/red/img_"+str(img_index)+".png", red_segmented)
-    cv2.imwrite("results/segments/blue/img_"+str(img_index)+".png", blue_segmented)
-    cv2.imwrite("results/segments/green/img_"+str(img_index)+".png", green_segmented)
-    cv2.imwrite("results/segments/rgb_to_grey/img_"+str(img_index)+".png", grey_segmented)
+    cv2.imwrite("results"+COLOR+"/segments/blurred/img_"+str(img_index)+".png", blurred_segmented)
+    cv2.imwrite("results"+COLOR+"/segments/red/img_"+str(img_index)+".png", red_segmented)
+    cv2.imwrite("results"+COLOR+"/segments/blue/img_"+str(img_index)+".png", blue_segmented)
+    cv2.imwrite("results"+COLOR+"/segments/green/img_"+str(img_index)+".png", green_segmented)
+    cv2.imwrite("results"+COLOR+"/segments/rgb_to_grey/img_"+str(img_index)+".png", grey_segmented)
+
     
     stop = time.time()
     print("finished loop iteration ", loop_index, "for first loop, time elapsed = ", stop-start)
