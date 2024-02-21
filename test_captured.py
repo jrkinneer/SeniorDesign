@@ -48,12 +48,13 @@ for filename in os.listdir(INPUT_PATH):
     darkest_red = np.min(red_means)
     darkest_green = np.min(green_means)
     darkest_blue = np.min(blue_means)
+    darkest_grey = np.min(grey_means)
     
     #initial all black masks
     red_mask = np.zeros_like(img)
     green_mask = np.zeros_like(img)
     blue_mask = np.zeros_like(img)
-    darkest_grey = np.min(grey_means)
+    grey_mask = np.zeros_like(img)
     
     #blurs red portion of img
     blurred = cv2.GaussianBlur(out[:,:,0], (7,7), 0)
@@ -103,6 +104,7 @@ for filename in os.listdir(INPUT_PATH):
     cv2.imwrite("results"+COLOR+"/segments/blue/img_"+str(img_index)+".png", blue_segmented)
     cv2.imwrite("results"+COLOR+"/segments/green/img_"+str(img_index)+".png", green_segmented)
     cv2.imwrite("results"+COLOR+"/segments/rgb_to_grey/img_"+str(img_index)+".png", grey_segmented)
+
     
     stop = time.time()
     print("finished loop iteration ", loop_index, "for first loop, time elapsed = ", stop-start)

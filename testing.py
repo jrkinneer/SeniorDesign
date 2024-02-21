@@ -26,6 +26,7 @@ for filename in os.listdir(INPUT_PATH):
     rgb_mask = cv2.imread("results"+COLOR+"/masks/combined_rgb/img"+str(img_index)+".png", cv2.IMREAD_GRAYSCALE)
     blurred_mask = cv2.imread("results"+COLOR+"/masks/combined/img"+str(img_index)+".png", cv2.IMREAD_GRAYSCALE)
     rgb_to_grey_mask = cv2.imread("results"+COLOR+"/masks/rgb_to_grey/img"+str(img_index)+".png", cv2.IMREAD_GRAYSCALE)
+
     
     total_white = np.count_nonzero(ground_truth)
     total_rgb_mask = np.count_nonzero(rgb_mask)
