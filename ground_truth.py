@@ -52,7 +52,7 @@ def get_ground_truth(clicked_points, original_img, img_ind):
     cv2.imshow("mask", filled)
     cv2.waitKey()
     cv2.destroyAllWindows()
-    cv2.imwrite("ground_truth_blue/img"+str(img_ind)+".png", filled)
+    cv2.imwrite("ground_truth_blue/img_"+str(img_ind)+".png", filled)
             
         
 if __name__ =="__main__":
