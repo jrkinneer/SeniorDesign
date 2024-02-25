@@ -4,6 +4,7 @@ import pyrealsense2 as rs
 import time
 import os
 from qrCode import qrCodeDetect
+import copy
 
 COLOR = "orange"
 RAWPATH = "raw_images/"+COLOR
@@ -122,13 +123,14 @@ def parseRawToTraining():
             #limit for projection
             limit = 5*img.shape[1]
 
-            lines = []
+            points = []
             successful_projection = True
             #loops through the three axis from projected points
-            for p in projected[1:]:
+            #ignore upward projection line
+            for p in projected[2:]:
                 #reformat p to be an even integer for indexing
                 p = (int(p[0]), int(p[1]))
-                lines.append(p)
+                points.append(p)
                 #error check for out of bounds 
                 if center[0] > limit or center[1] > limit:
                     successful_projection = False
@@ -143,8 +145,55 @@ def parseRawToTraining():
                 continue
             
             #add two more lines to list to complete a square
+            #"blue line"
+            x1, y1 = points[1]
             
-            qr_mask = np.zeros_like(img)
+            #"green line"
+            x2, y2 = points[2]
+            
+            #final point needed to draw square
+            x3 = x1 + (x2 - center[0])
+            y3 = y1 + (y2 - center[1])
+            
+            points.append((int(x3), int(y3)))
+            
+            qr_mask = np.zeros((img.shape[0], img.shape[1]))
             
             #draw white lines on black mask to flood fill for masking
+            #line from center to x1, y1
+            cv2.line(qr_mask, center, points[0], 255, thickness=1)
+            #line from x1, y1 to x3, y3
+            cv2.line(qr_mask, points[0], points[2], 255, thickness=1)
+            #line from center to x2, y2
+            cv2.line(qr_mask, center, points[1], 255, thickness=1)
+            #line from x2, y2 to x3, y3
+            cv2.line(qr_mask, points[1], points[2], 255, thickness=1)
+            
+            #for debuggin
+            cv2.imshow("lines", qr_mask)
+            cv2.waitKey()
+            cv2.destroyAllWindows()
+            
+            rgb_maskedRGB = copy.deepcopy(img)
+            
+            #flood fill qr mask image
+            for i in range(qr_mask.shape[0]):
+                # inOutline = False
+                j = 0
+                
+                j2 = img.shape[1] - 1
+                
+                while qr_mask[i][j] != 255 and j < qr_mask.shape[1] - 1:
+                    j = j + 1
+                    
+                while qr_mask[i][j2] != 255 and j2 >= 0:
+                    j2 = j2 - 1
+                    
+                while j < j2:
+                    #fill the rgb image with white where the qr code is supposed to be
+                    #more efficient than creating a black and white mask then
+                    #using a where function to mask over the rgb image
+                    rgb_maskedRGB[i][j] = (255, 255, 255)
+                    j = j + 1
+            
         
