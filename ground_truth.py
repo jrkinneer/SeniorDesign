@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import os
-
+COLOR = "green"
 clicked_points = []
 
 def get_click(event, x, y, flags, params):
@@ -52,14 +52,14 @@ def get_ground_truth(clicked_points, original_img, img_ind):
     cv2.imshow("mask", filled)
     cv2.waitKey()
     cv2.destroyAllWindows()
-    cv2.imwrite("ground_truth_blue/img_"+str(img_ind)+".png", filled)
+    cv2.imwrite("images/ground_truth_"+COLOR+"/img_"+str(img_ind)+".png", filled)
             
         
 if __name__ =="__main__":
-    for filename in os.listdir("captured_images_blue"):
+    for filename in os.listdir("images/captured_images_"+COLOR):
         clicked_points = []
         
-        f = os.path.join('captured_images_blue', filename)
+        f = os.path.join('images/captured_images_'+COLOR, filename)
     
         s = filename.split("_")
         s2 = s[1].split(".")

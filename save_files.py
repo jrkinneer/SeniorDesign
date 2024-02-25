@@ -12,6 +12,7 @@ import numpy as np
 # Import OpenCV for easy image rendering
 import cv2
 import time
+COLOR = "orange"
 
 # Create a pipeline
 pipeline = rs.pipeline()
@@ -35,8 +36,6 @@ if not found_rgb:
     print("The demo requires Depth camera with Color sensor")
     exit(0)
 
-config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-
 if device_product_line == 'L500':
     config.enable_stream(rs.stream.color, 960, 540, rs.format.bgr8, 30)
 else:
@@ -53,7 +52,7 @@ align = rs.align(align_to)
 
 # Streaming loop
 i = 0
-path = "captured_images_blue/img_"
+path = "images/captured_images_"+COLOR+"/img_"
 try:
     while True:
         time.sleep(1)

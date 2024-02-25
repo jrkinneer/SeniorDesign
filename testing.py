@@ -3,8 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-COLOR = "_blue"
-INPUT_PATH = "ground_truth" + COLOR
+COLOR = "blue"
+INPUT_PATH = "images/ground_truth_" + COLOR
 
 blurred_accuracies = []
 rgb_accuracies = []
@@ -23,9 +23,9 @@ for filename in os.listdir(INPUT_PATH):
     #input image
     ground_truth = cv2.imread(f, cv2.IMREAD_GRAYSCALE)
     
-    rgb_mask = cv2.imread("results"+COLOR+"/masks/combined_rgb/img"+str(img_index)+".png", cv2.IMREAD_GRAYSCALE)
-    blurred_mask = cv2.imread("results"+COLOR+"/masks/combined/img"+str(img_index)+".png", cv2.IMREAD_GRAYSCALE)
-    rgb_to_grey_mask = cv2.imread("results"+COLOR+"/masks/rgb_to_grey/img"+str(img_index)+".png", cv2.IMREAD_GRAYSCALE)
+    rgb_mask = cv2.imread("images/results"+COLOR+"/masks/combined_rgb/img_"+str(img_index)+".png", cv2.IMREAD_GRAYSCALE)
+    blurred_mask = cv2.imread("images/results"+COLOR+"/masks/combined/img_"+str(img_index)+".png", cv2.IMREAD_GRAYSCALE)
+    rgb_to_grey_mask = cv2.imread("images/results"+COLOR+"/masks/rgb_to_grey/img_"+str(img_index)+".png", cv2.IMREAD_GRAYSCALE)
 
     
     total_white = np.count_nonzero(ground_truth)
