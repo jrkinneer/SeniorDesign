@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 import pyrealsense2 as rs
 
-FILEPATH = "intrinsics_HD.txt"
+FILEPATH = "intrinsics.txt"
 
 def cameraParams(filepath):
     #from text file containing focal length and optical center in the format:
@@ -25,7 +25,7 @@ def cameraParams(filepath):
 #finds QR code and returns its translation and rotaion relative to the camera
 def qrCodeDetect(frame):
     """_summary_
-
+        detects a qrCode in a frame, returns the rotation, translation, and projection points
     Args:
         frame (NDArray): input image in the form of a numpy array
 
@@ -99,7 +99,7 @@ if __name__ == "__main__":
     if device_product_line == 'L500':
         config.enable_stream(rs.stream.color, 960, 540, rs.format.bgr8, 30)
     else:
-        config.enable_stream(rs.stream.color, 1920, 1080, rs.format.bgr8, 30)
+        config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
 
     # Start streaming
     profile = pipeline.start(config)
@@ -142,7 +142,6 @@ if __name__ == "__main__":
                     p = (int(p[0]), int(p[1]))
                     
                     #error check for out of bounds 
-                    
                     if center[0] > limit or center[1] > limit:
                         break
                     if p[0] > limit or p[1] > limit:

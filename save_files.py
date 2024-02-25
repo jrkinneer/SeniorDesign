@@ -12,7 +12,7 @@ import numpy as np
 # Import OpenCV for easy image rendering
 import cv2
 import time
-COLOR = "yellow"
+COLOR = "orange"
 
 # Create a pipeline
 pipeline = rs.pipeline()
@@ -52,7 +52,7 @@ align = rs.align(align_to)
 
 # Streaming loop
 i = 0
-path = "captured_images_"+COLOR+"/img_"
+path = "images/captured_images_"+COLOR+"/img_"
 try:
     while True:
         time.sleep(1)
