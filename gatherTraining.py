@@ -1,10 +1,10 @@
 import numpy as np
 import cv2 
 import pyrealsense2 as rs
-import time
 import os
 from qrCode import qrCodeDetect
 import copy
+from mask import create_mask
 
 COLOR = "orange"
 RAWPATH = "raw_images/"+COLOR
@@ -174,7 +174,7 @@ def parseRawToTraining():
             cv2.waitKey()
             cv2.destroyAllWindows()
             
-            rgb_maskedRGB = copy.deepcopy(img)
+            code_masked_out = copy.deepcopy(img)
             
             #flood fill qr mask image
             for i in range(qr_mask.shape[0]):
@@ -193,7 +193,13 @@ def parseRawToTraining():
                     #fill the rgb image with white where the qr code is supposed to be
                     #more efficient than creating a black and white mask then
                     #using a where function to mask over the rgb image
-                    rgb_maskedRGB[i][j] = (255, 255, 255)
+                    code_masked_out[i][j] = (255, 255, 255)
                     j = j + 1
+
+            rgb_mask = create_mask(code_masked_out)
             
-        
+            #save data
+            #regular rgb
+            
+        else:
+            continue
