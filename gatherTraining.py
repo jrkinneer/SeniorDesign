@@ -115,6 +115,7 @@ def parseRawToTraining():
         #search for qr code
         projected, rvec, tvec = qrCodeDetect(img)
         
+        qr_mask = np.zeros((img.shape[0], img.shape[1]))
         #successful qr code detection
         if len(projected) > 0:
             #get 2 dimensional area that needs blurred out to eliminate qr code
@@ -123,51 +124,24 @@ def parseRawToTraining():
             #limit for projection
             limit = 5*img.shape[1]
 
-            points = []
-            successful_projection = True
-            #loops through the three axis from projected points
-            #ignore upward projection line
-            for p in projected[2:]:
-                #reformat p to be an even integer for indexing
-                p = (int(p[0]), int(p[1]))
-                points.append(p)
-                #error check for out of bounds 
+            #loops through the three axis from projected points and the three colors
+            ind = 0
+            while ind < projected.shape[0]:
+                if ind == projected.shape[0] - 1:
+                    point1 = (int(projected[ind][0]), int(projected[ind][1]))
+                    point2 = (int(projected[0][0]), int(projected[0][1]))
+                    
+                else:
+                    point1 = (int(projected[ind][0]), int(projected[ind][1]))
+                    point2 = (int(projected[ind+1][0]), int(projected[ind+1][1]))
+                
                 if center[0] > limit or center[1] > limit:
-                    successful_projection = False
                     break
-                if p[0] > limit or p[1] > limit:
-                    successful_projection = False
+                if point1[0] > limit or point1[1] > limit:
                     break
                 
-            #abort the loop if projection is not successful
-            #we do this because if we do not know where to blur the QR code will interfere with the image masking
-            if not successful_projection:
-                continue
-            
-            #add two more lines to list to complete a square
-            #"blue line"
-            x1, y1 = points[1]
-            
-            #"green line"
-            x2, y2 = points[2]
-            
-            #final point needed to draw square
-            x3 = x1 + (x2 - center[0])
-            y3 = y1 + (y2 - center[1])
-            
-            points.append((int(x3), int(y3)))
-            
-            qr_mask = np.zeros((img.shape[0], img.shape[1]))
-            
-            #draw white lines on black mask to flood fill for masking
-            #line from center to x1, y1
-            cv2.line(qr_mask, center, points[0], 255, thickness=1)
-            #line from x1, y1 to x3, y3
-            cv2.line(qr_mask, points[0], points[2], 255, thickness=1)
-            #line from center to x2, y2
-            cv2.line(qr_mask, center, points[1], 255, thickness=1)
-            #line from x2, y2 to x3, y3
-            cv2.line(qr_mask, points[1], points[2], 255, thickness=1)
+                cv2.line(qr_mask, point1, point2, 255, 3)
+                ind = ind + 1
             
             #for debuggin
             cv2.imshow("lines", qr_mask)
