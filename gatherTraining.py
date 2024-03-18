@@ -2,16 +2,18 @@ import numpy as np
 import cv2 
 import pyrealsense2 as rs
 import os
-from qrCode import qrCodeDetect
-import copy
-from mask import create_mask
+import qrCode as qr
+import cube
+from tqdm import tqdm
 
-COLOR = "orange"
-RAWPATH = "raw_images/"+COLOR
-DEPTH_PATH = "depth_images/"+COLOR
+COLOR = "blue"
+RAWPATH = "images/raw_images/"+COLOR+"/rgb"
+DEPTH_PATH = "images/raw_images/"+COLOR+"/depth"
 
-def captureRaw():
-    """Capture 1200 images to a folder to be later parse to training images
+SAVE_PATH = "images/training/"+COLOR
+
+def captureRaw(N):
+    """Capture N images to a folder to be later parse to training images
     """
     # Create a pipeline
     pipeline = rs.pipeline()
@@ -34,7 +36,8 @@ def captureRaw():
     if not found_rgb:
         print("The demo requires Depth camera with Color sensor")
         exit(0)
-
+    config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+    
     if device_product_line == 'L500':
         config.enable_stream(rs.stream.color, 960, 540, rs.format.bgr8, 30)
     else:
@@ -43,6 +46,10 @@ def captureRaw():
     # Start streaming
     profile = pipeline.start(config)
 
+    depth_sensor = profile.get_device().first_depth_sensor()
+    depth_scale = depth_sensor.get_depth_scale()
+    print("Depth Scale is: " , depth_scale)
+    
     # Create an align object
     # rs.align allows us to perform alignment of depth frames to others frames
     # The "align_to" is the stream type to which we plan to align depth frames.
@@ -50,9 +57,10 @@ def captureRaw():
     align = rs.align(align_to)
 
     # Streaming loop
+    print("capturing images")
     ind = 0
     try:
-        while True:
+        while ind < N:
             # Get frameset of color and depth
             frames = pipeline.wait_for_frames()
             # frames.get_depth_frame() is a 640x360 depth image
@@ -69,20 +77,17 @@ def captureRaw():
             
             depth_image = np.asanyarray(aligned_depth_frame.get_data())
             color_image = np.asanyarray(color_frame.get_data())
-            depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
             
-            path = RAWPATH + "/img_" + str(ind) + ".png"
+            path = RAWPATH + "/" + str(ind) + ".png"
             cv2.imwrite(path, color_image)
             
-            path = DEPTH_PATH + "/img_" + str(ind) + ".png"
-            cv2.imwrite(path, color_image)
+            path = DEPTH_PATH + "/" + str(ind) + ".png"
+            cv2.imwrite(path, depth_image)
             
             ind = ind + 1
             
-            if ind > 1200:
-                break 
-            
     finally:
+        print("image capture finished")
         pipeline.stop()
         
 def parseRawToTraining():
@@ -91,8 +96,7 @@ def parseRawToTraining():
         #read image
         #find qr code
         #if found:
-            #blur code out of picture
-            #run masking for block
+            #mask cube
             #save corresponding masked image
             #save corresponding raw image
             #save corresponding depth image
@@ -101,79 +105,41 @@ def parseRawToTraining():
         #else:
             #continue
             
-    for filename in os.listdir(RAWPATH):
-        f = os.path.join(RAWPATH, filename)
+    index_file = open(SAVE_PATH+"/index.txt", "a")
     
-        s = filename.split("_")
-        s2 = s[1].split(".")
+    for filename in tqdm(os.listdir(RAWPATH)):
+        f = os.path.join(RAWPATH, filename)
         
-        img_index = int(s2[0])
+        s = filename.split('.')
         
         #input rgb image
         img = cv2.imread(f)
         
         #search for qr code
-        projected, rvec, tvec = qrCodeDetect(img)
+        xyz_cords, _, _, tvec, rmat =  qr.qrCodeDetect(img)
         
-        qr_mask = np.zeros((img.shape[0], img.shape[1]))
-        #successful qr code detection
-        if len(projected) > 0:
-            #get 2 dimensional area that needs blurred out to eliminate qr code
-            center = (int(projected[0][0]), int(projected[0][1]))
-                
-            #limit for projection
-            limit = 5*img.shape[1]
-
-            #loops through the three axis from projected points and the three colors
-            ind = 0
-            while ind < projected.shape[0]:
-                if ind == projected.shape[0] - 1:
-                    point1 = (int(projected[ind][0]), int(projected[ind][1]))
-                    point2 = (int(projected[0][0]), int(projected[0][1]))
-                    
-                else:
-                    point1 = (int(projected[ind][0]), int(projected[ind][1]))
-                    point2 = (int(projected[ind+1][0]), int(projected[ind+1][1]))
-                
-                if center[0] > limit or center[1] > limit:
-                    break
-                if point1[0] > limit or point1[1] > limit:
-                    break
-                
-                cv2.line(qr_mask, point1, point2, 255, 3)
-                ind = ind + 1
+        #if found
+        if len(xyz_cords) > 0:
+            #get cube masked
+            _, cube_top_pixels, _, cube_tvec, cube_rmat = cube.cubeLocator(rmat, tvec)
             
-            #for debuggin
-            cv2.imshow("lines", qr_mask)
-            cv2.waitKey()
-            cv2.destroyAllWindows()
-            
-            code_masked_out = copy.deepcopy(img)
-            
-            #flood fill qr mask image
-            for i in range(qr_mask.shape[0]):
-                # inOutline = False
-                j = 0
-                
-                j2 = img.shape[1] - 1
-                
-                while qr_mask[i][j] != 255 and j < qr_mask.shape[1] - 1:
-                    j = j + 1
-                    
-                while qr_mask[i][j2] != 255 and j2 >= 0:
-                    j2 = j2 - 1
-                    
-                while j < j2:
-                    #fill the rgb image with white where the qr code is supposed to be
-                    #more efficient than creating a black and white mask then
-                    #using a where function to mask over the rgb image
-                    code_masked_out[i][j] = (255, 255, 255)
-                    j = j + 1
-
-            rgb_mask = create_mask(code_masked_out)
-            
-            #save data
-            #regular rgb
-            
-        else:
-            continue
+            masked_cube_img = cube.drawCubeMask(img, cube_top_pixels, cube_rmat, cube_tvec)
+        
+            #save rgb
+            cv2.imwrite(SAVE_PATH+"/rgb/"+filename, img)
+            #save depth
+            cv2.imwrite(SAVE_PATH+"/depth/"+filename, cv2.imread(os.path.join(DEPTH_PATH, filename)))
+            #save rgb mask
+            cv2.imwrite(SAVE_PATH+"/mask/"+filename, masked_cube_img)
+            #save pose matrix
+            pose = np.hstack((rmat, tvec))
+            pose = np.vstack((pose, np.array([0,0,0,1])))
+            np.savetxt(SAVE_PATH+"/pose/"+s[0]+".txt", pose)
+            #append index to text file
+            index_file.write(s[0]+"\n")
+        
+    index_file.close()
+        
+if __name__ == "__main__":
+    captureRaw(100)
+    parseRawToTraining()
