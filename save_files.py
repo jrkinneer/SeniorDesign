@@ -52,10 +52,12 @@ align = rs.align(align_to)
 
 # Streaming loop
 i = 0
-path = "images/captured_images_"+COLOR+"/img_"
+#path = "images/captured_images_"+COLOR+"/img_"
+path = "images/calibration_images/img_"
+
 try:
     while True:
-        time.sleep(1)
+        time.sleep(.1)
         # Get frameset of color and depth
         frames = pipeline.wait_for_frames()
         # frames.get_depth_frame() is a 640x360 depth image
