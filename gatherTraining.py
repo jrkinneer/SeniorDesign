@@ -6,7 +6,7 @@ import qrCode as qr
 import cube
 from tqdm import tqdm
 
-COLOR = "blue"
+COLOR = "red"
 RAWPATH = "images/raw_images/"+COLOR+"/rgb"
 DEPTH_PATH = "images/raw_images/"+COLOR+"/depth"
 
@@ -84,13 +84,21 @@ def captureRaw(N):
             path = DEPTH_PATH + "/" + str(ind) + ".png"
             cv2.imwrite(path, depth_image)
             
+            #show preview of data being captured
+            cv2.imshow("preview", color_image)
+            key = cv2.waitKey(1)
+            # Press esc or 'q' to close the image window
+            if key & 0xFF == ord('q') or key == 27:
+                cv2.destroyAllWindows()
+                break
             ind = ind + 1
             
     finally:
         print("image capture finished")
+        cv2.destroyAllWindows()
         pipeline.stop()
         
-def parseRawToTraining():
+def parseRawToTraining(N):
     #steps
     #for image in raw folder
         #read image
@@ -104,42 +112,65 @@ def parseRawToTraining():
             #record image_index in text file
         #else:
             #continue
-            
+     
+    #initiate video capture for demo   
+    # fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+    # out = cv2.VideoWriter('test.avi', fourcc, 20.0, (640*2, 480*2))
+
+    #clear index file
+    open(SAVE_PATH+"/index.txt", 'w').close()
+    #open for appending results
     index_file = open(SAVE_PATH+"/index.txt", "a")
     
-    for filename in tqdm(os.listdir(RAWPATH)):
-        f = os.path.join(RAWPATH, filename)
-        
-        s = filename.split('.')
-        
+    for i in tqdm(range(N)):
         #input rgb image
-        img = cv2.imread(f)
-        
+        img = cv2.imread(RAWPATH+"/"+str(i)+".png")
         #search for qr code
         xyz_cords, _, _, tvec, rmat =  qr.qrCodeDetect(img)
         
         #if found
         if len(xyz_cords) > 0:
-            #get cube masked
+            #get cube location in the pciture space
             _, cube_top_pixels, _, cube_tvec, cube_rmat = cube.cubeLocator(rmat, tvec)
             
-            masked_cube_img = cube.drawCubeMask(img, cube_top_pixels, cube_rmat, cube_tvec)
+            #images to save for demo video
+            # save = np.copy(img)
+            # qr.showBox(save, pixel_points)
+            # save2 = np.copy(img)
+            # qr.showBox(save2, cube_top_pixels)
+            
+            #mask the cube and return the line mask and the masked image
+            lined, masked_cube_img = cube.drawCubeMask(img, cube_top_pixels, cube_rmat, cube_tvec)
         
+            #make 3d 
+            lined_3d = np.dstack((lined, lined, lined)).astype('uint8')
+            
+            #result = np.vstack((np.hstack((save, save2)), np.hstack((lined_3d, masked_cube_img))))
+            
+            #write to output video
+            #out.write(result)
+            
+            #save all training data
+            filename = str(i) + ".png"
             #save rgb
             cv2.imwrite(SAVE_PATH+"/rgb/"+filename, img)
             #save depth
             cv2.imwrite(SAVE_PATH+"/depth/"+filename, cv2.imread(os.path.join(DEPTH_PATH, filename)))
             #save rgb mask
             cv2.imwrite(SAVE_PATH+"/mask/"+filename, masked_cube_img)
+            #save lined bounding box image
+            cv2.imwrite(SAVE_PATH+"/lined/"+filename, lined_3d)
             #save pose matrix
             pose = np.hstack((rmat, tvec))
             pose = np.vstack((pose, np.array([0,0,0,1])))
-            np.savetxt(SAVE_PATH+"/pose/"+s[0]+".txt", pose)
+            np.savetxt(SAVE_PATH+"/pose/"+str(i)+".txt", pose)
             #append index to text file
-            index_file.write(s[0]+"\n")
-        
+            index_file.write(str(i)+"\n")
+            
+            
     index_file.close()
-        
+    #out.release()
+    cv2.destroyAllWindows()
 if __name__ == "__main__":
-    captureRaw(100)
-    parseRawToTraining()
+    # captureRaw(1000)
+    parseRawToTraining(1000)
