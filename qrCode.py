@@ -27,7 +27,7 @@ def qrCodeDetect(frame):
 
     Returns:
         corner_cords NDArray: XYZ coordinates in mm of the four corners of the qr code relative to the camera center
-        projected_points NDArray: contains points necessary to project three rgb axis onto the captured image
+        points NDArray: contains points necessary to project three rgb axis onto the captured image
         rvec NDArray: rotation of QR code relative to camera coordinate system (vector, in degrees)
         tvec NDArray: translation of QR code relative to camera coordinate system (vector)
         rmat NDArray: rvec in 3x3 matrix form (in radians)

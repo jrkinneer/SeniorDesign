@@ -124,3 +124,42 @@ def drawCubeMask(color_image, top_face_cords, rmat, tvec, c=qr.CUBE):
             j = j + 1
     
     return mask_lines, masked_cube
+
+def cubeOutline(top_face_cords, rmat, tvec, c=qr.CUBE):
+    """returns only the xmin, ymin, xmax, ymax of the cube in pixel coords
+
+    Args:
+        top_face_cords (NDArray): 4x2 input array of the u,v pixel coordinates of the cube
+        rmat (NDArray): 3x3 rotation matrix calculated from cubeLocator()
+        tvec (NDArray): 3x1 translation vector measured in mm, calculated from cubeLocator()
+        c (Float32, optional): cube side length in mm. Defaults to qr.CUBE.
+
+    Returns:
+        list: four integer values of the min and max of the cube in the pixel space
+    """
+    bottom_cords_homogenous = np.array([[0, 0, c, 1],
+                                        [c, 0, c, 1],
+                                        [c, c, c, 1],
+                                        [0, c, c, 1]]).reshape((4,1,4)).astype('float32')
+    
+    #get rotation and translation matrix
+    essential = np.hstack((rmat, tvec))
+    
+    pixel_cords = np.zeros((4,2))
+    
+    ind = 0
+    for cord in bottom_cords_homogenous:
+        camera = np.dot(qr.INTRINSIC, essential)
+        pixel = np.dot(camera, cord.T)
+        pixel_cords[ind] = [int(pixel[0]/pixel[2]), int(pixel[1]/pixel[2])]
+        
+        ind += 1
+        
+    #find the xmin, ymin, xmax, ymax
+    all_cords = np.vstack((top_face_cords, pixel_cords))
+    xmin = int(np.min(all_cords[:, 0]))
+    ymin = int(np.min(all_cords[:, 1]))
+    xmax = int(np.max(all_cords[:, 0]))
+    ymax = int(np.max(all_cords[:, 1]))
+    
+    return xmin, ymin, xmax, ymax
