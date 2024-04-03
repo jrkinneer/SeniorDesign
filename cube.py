@@ -61,7 +61,7 @@ def cubeLocator(rmat, tvec, s=qr.QR_DIMENSION, d=qr.D, c=qr.CUBE):
             world_corner = np.dot(rmat.T, corner.reshape((3,1))) + tvec
             corner_cords.append(world_corner.flatten())
         
-        return corner_cords, pixel_cords, rvec*(180/np.pi), tvec, rmat
+        return corner_cords, pixel_cords.astype('uint8'), rvec*(180/np.pi), tvec, rmat
 
     return [], [], [], [], []
     
@@ -125,18 +125,7 @@ def drawCubeMask(color_image, top_face_cords, rmat, tvec, c=qr.CUBE):
     
     return mask_lines, masked_cube
 
-def cubeOutline(top_face_cords, rmat, tvec, c=qr.CUBE):
-    """returns only the xmin, ymin, xmax, ymax of the cube in pixel coords
-
-    Args:
-        top_face_cords (NDArray): 4x2 input array of the u,v pixel coordinates of the cube
-        rmat (NDArray): 3x3 rotation matrix calculated from cubeLocator()
-        tvec (NDArray): 3x1 translation vector measured in mm, calculated from cubeLocator()
-        c (Float32, optional): cube side length in mm. Defaults to qr.CUBE.
-
-    Returns:
-        list: four integer values of the min and max of the cube in the pixel space
-    """
+def cubeBottom(rmat, tvec, c=qr.CUBE):
     bottom_cords_homogenous = np.array([[0, 0, c, 1],
                                         [c, 0, c, 1],
                                         [c, c, c, 1],
@@ -155,11 +144,21 @@ def cubeOutline(top_face_cords, rmat, tvec, c=qr.CUBE):
         
         ind += 1
         
+    return pixel_cords.astype('uint8')
+
+def cubeOutline(top_face_cords,bottom_cords):
+    
     #find the xmin, ymin, xmax, ymax
-    all_cords = np.vstack((top_face_cords, pixel_cords))
+    all_cords = np.vstack((top_face_cords, bottom_cords))
     xmin = int(np.min(all_cords[:, 0]))
     ymin = int(np.min(all_cords[:, 1]))
     xmax = int(np.max(all_cords[:, 0]))
     ymax = int(np.max(all_cords[:, 1]))
     
-    return xmin, ymin, xmax, ymax
+    centroidX = int(xmin + ((xmax-xmin)/2))
+    centroidY = int(ymin + ((ymax-ymin)/2))
+    
+    width = xmax - xmin
+    height = ymax - ymin
+    
+    return centroidX, centroidY, width, height
