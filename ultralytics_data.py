@@ -15,7 +15,7 @@ def parseRawToTraining(path, color_name, color_class, starting_index):
         #if found:
             #remove qr code from image
             #save corresponding masked image
-            #save pose to text file
+            #save data to text file
         #else:
             #continue
 
