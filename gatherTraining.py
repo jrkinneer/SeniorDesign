@@ -99,7 +99,7 @@ def captureRaw(N):
         cv2.destroyAllWindows()
         pipeline.stop()
         
-def parseRawToTraining(path, starting_index):
+def parseRawToTraining(path, color_label, starting_index):
     #steps
     #for image in raw folder
         #read image
@@ -111,7 +111,9 @@ def parseRawToTraining(path, starting_index):
         #else:
             #continue
 
-    for filename in os.listdir(path):
+    img_index = 0
+    
+    for filename in tqdm(os.listdir(path), desc="progress on "+color_label+" class"):
         #input rgb image
         f = os.path.join(path, filename)
         img = cv2.imread(f)
@@ -121,26 +123,68 @@ def parseRawToTraining(path, starting_index):
         
         #if found
         if len(xyz_cords) > 0:
-            #mask qrcode to white
-            
+        
+        #mask qrcode to white
+            qr_mask = np.zeros((img.shape[0], img.shape[1]))
+            qr.showBox(qr_mask, qr_pixel_coords)
+            #mask interior of polygon to white
+            rows_with_line = np.any(qr_mask == 255, axis=1)
+
+            leftmost_255 = np.argmax(qr_mask==255, axis = 1)
+            rightmost_255 = qr_mask.shape[1] - np.argmax(np.flip(qr_mask == 255, axis = 1), axis = 1) - 1
+
+            for ind, row in enumerate(rows_with_line):
+                if row:
+                    for j in range(leftmost_255[ind], rightmost_255[ind]):
+                        img[ind][j] = [225,225,225]
+                    
             #get cube location in the pciture space
-            _, cube_top_pixels, _, cube_tvec, cube_rmat = cube.cubeLocator(rmat, tvec)
+            _, cube_top_pixels, cube_rvec, cube_tvec, cube_rmat = cube.cubeLocator(rmat, tvec)
             
-            #images to save for demo video
-            # save = np.copy(img)
-            # qr.showBox(save, pixel_points)
-            # save2 = np.copy(img)
-            # qr.showBox(save2, cube_top_pixels)
-            
+            #get bounding x and y coords of the cube mask
+            cube_xmin, cube_ymin, cube_xmax, cube_ymax = cube.cubeOutline(cube_top_pixels, cube_rmat, cube_tvec)
             
             #save all training data
+            final_img_ind = img_index + starting_index
+            ind_str = str(final_img_ind)
+            pad_length = 6 - len(ind_str)
+            file_str = '0'*pad_length + ind_str
             
+            cv2.imwrite("/home/jared/SeniorDesign/images/training/img/"+file_str+".png", img)
             
-    #index_file.close()
-    #out.release()
-    #cv2.destroyAllWindows()
+            #save data about class and position
+            with open("/home/jared/SeniorDesign/images/training/labels/"+file_str+".txt", "w") as file:
+                file.write(color_label+ " ")
+                
+                #xmin,ymin,xmax,ymax
+                file.write(str(cube_xmin) + " ")
+                file.write(str(cube_ymin) + " ")
+                file.write(str(cube_xmax) + " ")
+                file.write(str(cube_ymax) + " ")
+                
+                #cube dimensions
+                file.write(str(qr.CUBE) + " ")
+                file.write(str(qr.CUBE) + " ")
+                file.write(str(qr.CUBE) + " ")
+                
+                #translation and rotation
+                for trans in cube_tvec.flatten():
+                    file.write(str(trans) + " ")
+                    
+                for ind, rot in enumerate(cube_rvec.flatten()):
+                    if ind != 2:
+                        file.write(str(rot) + " ")
+                    else:
+                        file.write(str(rot))
+                
+            img_index+=1
+    
+    print("completed "+str(img_index)+" images for "+color_label+" class")
+    return img_index + starting_index        
 if __name__ == "__main__":
     colors = ["red", "blue", "green"]
     img_index = 0
-    
-    
+    for color in colors:
+        path = "/home/jared/SeniorDesign/images/raw_images/"+color+"/rgb"
+        img_index = parseRawToTraining(path, color, img_index)
+        
