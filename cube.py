@@ -61,7 +61,7 @@ def cubeLocator(rmat, tvec, s=qr.QR_DIMENSION, d=qr.D, c=qr.CUBE):
             world_corner = np.dot(rmat.T, corner.reshape((3,1))) + tvec
             corner_cords.append(world_corner.flatten())
         
-        return corner_cords, pixel_cords.astype('uint8'), rvec*(180/np.pi), tvec, rmat
+        return corner_cords, pixel_cords.astype('uint32'), rvec*(180/np.pi), tvec, rmat
 
     return [], [], [], [], []
     
@@ -144,7 +144,7 @@ def cubeBottom(rmat, tvec, c=qr.CUBE):
         
         ind += 1
         
-    return pixel_cords.astype('uint8')
+    return pixel_cords.astype('uint32')
 
 def cubeOutline(top_face_cords,bottom_cords):
     

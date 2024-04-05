@@ -57,18 +57,19 @@ def parseRawToTraining(path, color_name, color_class, starting_index):
             bottom_pixels = cube.cubeBottom(cube_rmat, cube_tvec)
             
             #error check for valid projection
-            
             #top left and right of qr code
             top_l_qr = qr_pixel_coords[0]
             top_r_qr = qr_pixel_coords[1]
             
+            #right shift
+            qr.showBox(img, cube_top_pixels)
+            qr.showBox(img, bottom_pixels)
+            
             #top left of bottom face of the cube
             top_l_bottom_cube = bottom_pixels[0]
-            top_l_top_cube = cube_top_pixels[0]
-            
             
             #distance
-            dist = np.sqrt((top_l_bottom_cube[0] + top_r_qr[0])**2 + (top_l_bottom_cube[1] + top_r_qr[1])**2)
+            dist = np.sqrt((top_l_bottom_cube[0] - top_r_qr[0])**2 + (top_l_bottom_cube[1] - top_r_qr[1])**2)
             
             #distance limit
             dist_qr_top = np.sqrt((top_r_qr[0]-top_l_qr[0])**2 + (top_r_qr[1]-top_l_qr[1])**2)
@@ -93,17 +94,26 @@ def parseRawToTraining(path, color_name, color_class, starting_index):
                     for j in range(leftmost_255[ind], rightmost_255[ind]):
                         top_mask[ind][j] = 255
             
-            
             #look for points on bottom face that are projected onto top plane
             count = 0
             visible = []
+            out_of_bounds = False
             for pair in bottom_pixels:
+                #error check out of bounds
+                if pair[0] >= img.shape[0] or pair[1] >= img.shape[1]:
+                    out_of_bounds = True
+                    break
+                
                 if top_mask[pair[0]][pair[1]] == 255:
                     visible.append("0")
                     count += 1
                 else:
                     visible.append("1")
              
+            #handle error check for out of bounds
+            if out_of_bounds:
+                continue
+            
             if count > 1:
                 missing_multiple += 1        
             #get center point and width and height of 2d bounding box
@@ -166,5 +176,7 @@ if __name__ == "__main__":
     
     img_index = 0
     for ind, color in enumerate(colors):
-        path = "/home/jared/SeniorDesign/images/raw_images/"+color+"/rgb"
+        # path = "/home/jared/SeniorDesign/images/raw_images/"+color+"/rgb"
+        path = "images/raw_images/"+color+"/rgb"
+
         img_index = parseRawToTraining(path, color, numbers[ind], img_index)
