@@ -27,7 +27,7 @@ def qrCodeDetect(frame):
 
     Returns:
         corner_cords NDArray: XYZ coordinates in mm of the four corners of the qr code relative to the camera center
-        projected_points NDArray: contains points necessary to project three rgb axis onto the captured image
+        points NDArray: contains points necessary to project three rgb axis onto the captured image
         rvec NDArray: rotation of QR code relative to camera coordinate system (vector, in degrees)
         tvec NDArray: translation of QR code relative to camera coordinate system (vector)
         rmat NDArray: rvec in 3x3 matrix form (in radians)
@@ -72,6 +72,58 @@ def qrCodeDetect(frame):
     else:
         return [], [], [], [], []
 
+def qrCodeDetect_changed(frame):
+    """_summary_
+        detects a qrCode in a frame, returns the rotation, translation, and projection points
+        the projected points are the four points around the code, used to create a bounding box
+    Args:
+        frame (NDArray): input image in the form of a numpy array
+
+    Returns:
+        corner_cords NDArray: XYZ coordinates in mm of the four corners of the qr code relative to the camera center
+        points NDArray: contains points necessary to project three rgb axis onto the captured image
+        rvec NDArray: rotation of QR code relative to camera coordinate system (vector, in degrees)
+        tvec NDArray: translation of QR code relative to camera coordinate system (vector)
+        rmat NDArray: rvec in 3x3 matrix form (in radians)
+    """
+    #qr code detector object
+    qr = cv2.QRCodeDetector()
+
+    #find qr code
+    code, points = qr.detect(frame)
+    
+    #qr code found successfully
+    if code:
+        #reshape points array for ease of use later
+        points = points[0]
+        #world coordinates of qr code corners assuming no rotation
+        #qr_size is measure in mm
+        qr_corners = np.array([[0,0,0],
+                        [QR_DIMENSION,0,0],
+                        [QR_DIMENSION,QR_DIMENSION,0],
+                        [0,QR_DIMENSION,0]]).reshape((4,1,3)).astype('float32')
+        
+        success, rvec, tvec = cv2.solvePnP(qr_corners, points.astype('float32'), INTRINSIC, DIST)
+
+        #conditional return depending on the success of PnP solve
+        if success:
+            
+            #turn rotation vector into 3x3 matrix
+            rmat, _ = cv2.Rodrigues(rvec)
+            
+            #find the x y and z displacement of the four corners of the qr code, relative to the camera center
+            corner_cords = []
+            for corner in qr_corners:
+                world_corner = np.dot(rmat.T, corner.reshape((3,1))) + tvec
+                corner_cords.append(world_corner.flatten())
+            
+            return corner_cords, points, rvec*(180/np.pi), tvec, rmat
+
+        else:
+            return [], [], [], [], []
+
+    else:
+        return [], [], [], [], []
 #functions for debugging and visualization purposes
 def showCrosshairs(color_image):
     """takes input image and draws crosshairs for demonstration purposes

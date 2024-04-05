@@ -10,7 +10,8 @@ COLOR = "red"
 RAWPATH = "images/raw_images/"+COLOR+"/rgb"
 DEPTH_PATH = "images/raw_images/"+COLOR+"/depth"
 
-SAVE_PATH = "images/training/"+COLOR
+#SAVE_PATH = "images/training/"+COLOR
+SAVE_PATH = "images/training/"
 
 def captureRaw(N):
     """Capture N images to a folder to be later parse to training images
@@ -98,79 +99,92 @@ def captureRaw(N):
         cv2.destroyAllWindows()
         pipeline.stop()
         
-def parseRawToTraining(N):
+def parseRawToTraining(path, color_label, starting_index):
     #steps
     #for image in raw folder
         #read image
         #find qr code
         #if found:
-            #mask cube
+            #remove qr code from image
             #save corresponding masked image
-            #save corresponding raw image
-            #save corresponding depth image
             #save pose to text file
-            #record image_index in text file
         #else:
             #continue
-     
-    #initiate video capture for demo   
-    # fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-    # out = cv2.VideoWriter('test.avi', fourcc, 20.0, (640*2, 480*2))
 
-    #clear index file
-    open(SAVE_PATH+"/index.txt", 'w').close()
-    #open for appending results
-    index_file = open(SAVE_PATH+"/index.txt", "a")
+    img_index = 0
     
-    for i in tqdm(range(N)):
+    for filename in tqdm(os.listdir(path), desc="progress on "+color_label+" class"):
         #input rgb image
-        img = cv2.imread(RAWPATH+"/"+str(i)+".png")
+        f = os.path.join(path, filename)
+        img = cv2.imread(f)
+        
         #search for qr code
-        xyz_cords, _, _, tvec, rmat =  qr.qrCodeDetect(img)
+        xyz_cords, qr_pixel_coords, _, tvec, rmat =  qr.qrCodeDetect(img)
         
         #if found
         if len(xyz_cords) > 0:
-            #get cube location in the pciture space
-            _, cube_top_pixels, _, cube_tvec, cube_rmat = cube.cubeLocator(rmat, tvec)
-            
-            #images to save for demo video
-            # save = np.copy(img)
-            # qr.showBox(save, pixel_points)
-            # save2 = np.copy(img)
-            # qr.showBox(save2, cube_top_pixels)
-            
-            #mask the cube and return the line mask and the masked image
-            lined, masked_cube_img = cube.drawCubeMask(img, cube_top_pixels, cube_rmat, cube_tvec)
         
-            #make 3d 
-            lined_3d = np.dstack((lined, lined, lined)).astype('uint8')
+        #mask qrcode to white
+            qr_mask = np.zeros((img.shape[0], img.shape[1]))
+            qr.showBox(qr_mask, qr_pixel_coords)
+            #mask interior of polygon to white
+            rows_with_line = np.any(qr_mask == 255, axis=1)
+
+            leftmost_255 = np.argmax(qr_mask==255, axis = 1)
+            rightmost_255 = qr_mask.shape[1] - np.argmax(np.flip(qr_mask == 255, axis = 1), axis = 1) - 1
+
+            for ind, row in enumerate(rows_with_line):
+                if row:
+                    for j in range(leftmost_255[ind], rightmost_255[ind]):
+                        img[ind][j] = [225,225,225]
+                    
+            #get cube location in the pciture space
+            _, cube_top_pixels, cube_rvec, cube_tvec, cube_rmat = cube.cubeLocator(rmat, tvec)
             
-            #result = np.vstack((np.hstack((save, save2)), np.hstack((lined_3d, masked_cube_img))))
-            
-            #write to output video
-            #out.write(result)
+            #get bounding x and y coords of the cube mask
+            cube_xmin, cube_ymin, cube_xmax, cube_ymax = cube.cubeOutline(cube_top_pixels, cube_rmat, cube_tvec)
             
             #save all training data
-            filename = str(i) + ".png"
-            #save rgb
-            cv2.imwrite(SAVE_PATH+"/rgb/"+filename, img)
-            #save depth
-            cv2.imwrite(SAVE_PATH+"/depth/"+filename, cv2.imread(os.path.join(DEPTH_PATH, filename)))
-            #save rgb mask
-            cv2.imwrite(SAVE_PATH+"/mask/"+filename, masked_cube_img)
-            #save lined bounding box image
-            cv2.imwrite(SAVE_PATH+"/lined/"+filename, lined_3d)
-            #save pose matrix
-            pose = np.hstack((rmat, tvec))
-            pose = np.vstack((pose, np.array([0,0,0,1])))
-            np.savetxt(SAVE_PATH+"/pose/"+str(i)+".txt", pose)
-            #append index to text file
-            index_file.write(str(i)+"\n")
+            final_img_ind = img_index + starting_index
+            ind_str = str(final_img_ind)
+            pad_length = 6 - len(ind_str)
+            file_str = '0'*pad_length + ind_str
             
+            cv2.imwrite("/home/jared/SeniorDesign/images/training/img/"+file_str+".png", img)
             
-    index_file.close()
-    #out.release()
-    cv2.destroyAllWindows()
+            #save data about class and position
+            with open("/home/jared/SeniorDesign/images/training/labels/"+file_str+".txt", "w") as file:
+                file.write(color_label+ " ")
+                
+                #xmin,ymin,xmax,ymax
+                file.write(str(cube_xmin) + " ")
+                file.write(str(cube_ymin) + " ")
+                file.write(str(cube_xmax) + " ")
+                file.write(str(cube_ymax) + " ")
+                
+                #cube dimensions
+                file.write(str(qr.CUBE) + " ")
+                file.write(str(qr.CUBE) + " ")
+                file.write(str(qr.CUBE) + " ")
+                
+                #translation and rotation
+                for trans in cube_tvec.flatten():
+                    file.write(str(trans) + " ")
+                    
+                for ind, rot in enumerate(cube_rvec.flatten()):
+                    if ind != 2:
+                        file.write(str(rot) + " ")
+                    else:
+                        file.write(str(rot))
+                
+            img_index+=1
+    
+    print("completed "+str(img_index)+" images for "+color_label+" class")
+    return img_index + starting_index        
 if __name__ == "__main__":
-    # captureRaw(1000)
-    parseRawToTraining(1000)
+    colors = ["red", "blue", "green"]
+    img_index = 0
+    for color in colors:
+        path = "/home/jared/SeniorDesign/images/raw_images/"+color+"/rgb"
+        img_index = parseRawToTraining(path, color, img_index)
+        
