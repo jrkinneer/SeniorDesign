@@ -25,6 +25,7 @@ def parseRawToTraining(path, color_name, color_class, starting_index):
     validation = 0
     
     for filename in tqdm(os.listdir(path), desc="progress on "+color_name+" class"):
+        # for filename in os.listdir(path):
         #input rgb image
         f = os.path.join(path, filename)
         img = cv2.imread(f)
@@ -39,7 +40,6 @@ def parseRawToTraining(path, color_name, color_class, starting_index):
             qr_mask = np.zeros((img.shape[0], img.shape[1]))
             
             qr.showBox(qr_mask, qr_pixel_coords)
-            
             #mask interior of qr code polygon to white
             rows_with_line = np.any(qr_mask == 255, axis=1)
 
@@ -52,10 +52,33 @@ def parseRawToTraining(path, color_name, color_class, starting_index):
                         img[ind][j] = [225,225,225]
                     
             #get cube location in the pciture space
-            _, cube_top_pixels, cube_rvec, cube_tvec, cube_rmat = cube.cubeLocator(rmat, tvec)
+            _, cube_top_pixels, _, cube_tvec, cube_rmat = cube.cubeLocator(rmat, tvec)
             
             bottom_pixels = cube.cubeBottom(cube_rmat, cube_tvec)
             
+            #error check for valid projection
+            
+            #top left and right of qr code
+            top_l_qr = qr_pixel_coords[0]
+            top_r_qr = qr_pixel_coords[1]
+            
+            #top left of bottom face of the cube
+            top_l_bottom_cube = bottom_pixels[0]
+            top_l_top_cube = cube_top_pixels[0]
+            
+            
+            #distance
+            dist = np.sqrt((top_l_bottom_cube[0] + top_r_qr[0])**2 + (top_l_bottom_cube[1] + top_r_qr[1])**2)
+            
+            #distance limit
+            dist_qr_top = np.sqrt((top_r_qr[0]-top_l_qr[0])**2 + (top_r_qr[1]-top_l_qr[1])**2)
+            limit = ((qr.D/qr.QR_DIMENSION)*dist_qr_top) + 20
+            
+            #check if distance is greater than limit
+            if dist > limit:
+                continue
+            #continue if true
+
             #determine which cube points on the bottom are hidden
             #create binary mask of top face
             top_mask = np.zeros((img.shape[0], img.shape[1]))
@@ -76,10 +99,10 @@ def parseRawToTraining(path, color_name, color_class, starting_index):
             visible = []
             for pair in bottom_pixels:
                 if top_mask[pair[0]][pair[1]] == 255:
-                    visible.append(False)
+                    visible.append("0")
                     count += 1
                 else:
-                    visible.append(True)
+                    visible.append("1")
              
             if count > 1:
                 missing_multiple += 1        
@@ -94,42 +117,42 @@ def parseRawToTraining(path, color_name, color_class, starting_index):
             
             #save to training or testing
             r = random.random()
-            save_path = "/home/jared/SeniorDesign/images/"
+            save_path = "/home/jared/datasets"
             if r < .85:
-                save_path += "training/"
+                x = "/training/"
                 training += 1
             else:
-                save_path += "validation/"
+                x = "/val/"
                 validation += 1
             
-            cv2.imwrite(save_path+"img/"+file_str+".png", img)
+            # cv2.imwrite(save_path+"/images"+x+file_str+".png", img)
             
-            #save data about class and position
-            with open(save_path+"labels/"+file_str+".txt", "w") as file:
-                file.write(str(color_class)+ " ")
+            # #save data about class and position
+            # with open(save_path+"/labels"+x+file_str+".txt", "w") as file:
+            #     file.write(str(color_class)+ " ")
                 
-                #all data is normalixed to be between 0 and 1
-                #centroids and w/h
-                file.write(str(centroidX/img.shape[0])+ " ")
-                file.write(str(centroidY/img.shape[1])+ " ")
-                file.write(str(width/img.shape[0])+ " ")
-                file.write(str(height/img.shape[1])+ " ")
+            #     #all data is normalixed to be between 0 and 1
+            #     #centroids and w/h
+            #     file.write(str(centroidX/img.shape[0])+ " ")
+            #     file.write(str(centroidY/img.shape[1])+ " ")
+            #     file.write(str(width/img.shape[0])+ " ")
+            #     file.write(str(height/img.shape[1])+ " ")
                 
-                #write top pixels
-                for pair in cube_top_pixels:
-                    file.write(str(pair[0]/img.shape[0]) + " ")
-                    file.write(str(pair[1]/img.shape[1]) + " ")
+            #     #write top pixels
+            #     for pair in cube_top_pixels:
+            #         file.write(str(pair[0]/img.shape[0]) + " ")
+            #         file.write(str(pair[1]/img.shape[1]) + " ")
                     
-                    #all top points are visible so we write true after each pai
-                    file.write("True ")
+            #         #all top points are visible so we write true after each pair
+            #         file.write("1 ")
                     
-                #write bottom pixels
-                for ind, pair in enumerate(bottom_pixels):
-                    file.write(str(pair[0]/img.shape[0]) + " ")
-                    file.write(str(pair[1]/img.shape[1]) + " ")
+            #     #write bottom pixels
+            #     for ind, pair in enumerate(bottom_pixels):
+            #         file.write(str(pair[0]/img.shape[0]) + " ")
+            #         file.write(str(pair[1]/img.shape[1]) + " ")
                     
-                    #writes the visibility of that pair
-                    file.write(str(visible[ind]) + " ")
+            #         #writes the visibility of that pair
+            #         file.write(visible[ind] + " ")
                     
             img_index+=1
     
