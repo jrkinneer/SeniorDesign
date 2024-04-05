@@ -162,6 +162,8 @@ def showBox(image, points):
         #error checks to see if the center coord is past an acceptable limit
         if point1[0] > limit or point1[1] > limit:
             break
+        if point2[0] > limit or point2[1] > limit:
+            break
         
         #checks to see if image is black and white or a color and draws accordingly
         if image.ndim == 3:
