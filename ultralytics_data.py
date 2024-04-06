@@ -51,19 +51,28 @@ def parseRawToTraining(path, color_name, color_class, starting_index):
                     for j in range(leftmost_255[ind], rightmost_255[ind]):
                         img[ind][j] = [225,225,225]
                     
-            #get cube location in the pciture space
+            #get cube location in the picture space
             _, cube_top_pixels, _, cube_tvec, cube_rmat = cube.cubeLocator(rmat, tvec)
             
             bottom_pixels = cube.cubeBottom(cube_rmat, cube_tvec)
+            
+            #error check for all 8 points inside image bounds
+            out_of_bounds = False
+            for i in range(4):
+                if bottom_pixels[i][0] >= img.shape[0] or bottom_pixels[i][1] >= img.shape[1]:
+                    out_of_bounds = True
+                    break
+                if cube_top_pixels[i][0] >= img.shape[0] or cube_top_pixels[i][1] >= img.shape[1]:
+                    out_of_bounds = True
+                    break
+            
+            if out_of_bounds:
+                continue
             
             #error check for valid projection
             #top left and right of qr code
             top_l_qr = qr_pixel_coords[0]
             top_r_qr = qr_pixel_coords[1]
-            
-            #right shift
-            qr.showBox(img, cube_top_pixels)
-            qr.showBox(img, bottom_pixels)
             
             #top left of bottom face of the cube
             top_l_bottom_cube = bottom_pixels[0]
@@ -97,22 +106,13 @@ def parseRawToTraining(path, color_name, color_class, starting_index):
             #look for points on bottom face that are projected onto top plane
             count = 0
             visible = []
-            out_of_bounds = False
+            
             for pair in bottom_pixels:
-                #error check out of bounds
-                if pair[0] >= img.shape[0] or pair[1] >= img.shape[1]:
-                    out_of_bounds = True
-                    break
-                
                 if top_mask[pair[0]][pair[1]] == 255:
                     visible.append("0")
                     count += 1
                 else:
                     visible.append("1")
-             
-            #handle error check for out of bounds
-            if out_of_bounds:
-                continue
             
             if count > 1:
                 missing_multiple += 1        
@@ -128,41 +128,41 @@ def parseRawToTraining(path, color_name, color_class, starting_index):
             #save to training or testing
             r = random.random()
             save_path = "/home/jared/datasets"
-            if r < .85:
+            if r < .95:
                 x = "/training/"
                 training += 1
             else:
                 x = "/val/"
                 validation += 1
             
-            # cv2.imwrite(save_path+"/images"+x+file_str+".png", img)
+            cv2.imwrite(save_path+"/images"+x+file_str+".png", img)
             
-            # #save data about class and position
-            # with open(save_path+"/labels"+x+file_str+".txt", "w") as file:
-            #     file.write(str(color_class)+ " ")
+            #save data about class and position
+            with open(save_path+"/labels"+x+file_str+".txt", "w") as file:
+                file.write(str(color_class)+ " ")
                 
-            #     #all data is normalixed to be between 0 and 1
-            #     #centroids and w/h
-            #     file.write(str(centroidX/img.shape[0])+ " ")
-            #     file.write(str(centroidY/img.shape[1])+ " ")
-            #     file.write(str(width/img.shape[0])+ " ")
-            #     file.write(str(height/img.shape[1])+ " ")
+                #all data is normalixed to be between 0 and 1
+                #centroids and w/h
+                file.write(str(centroidX/img.shape[0])+ " ")
+                file.write(str(centroidY/img.shape[1])+ " ")
+                file.write(str(width/img.shape[0])+ " ")
+                file.write(str(height/img.shape[1])+ " ")
                 
-            #     #write top pixels
-            #     for pair in cube_top_pixels:
-            #         file.write(str(pair[0]/img.shape[0]) + " ")
-            #         file.write(str(pair[1]/img.shape[1]) + " ")
+                #write top pixels
+                for pair in cube_top_pixels:
+                    file.write(str(pair[0]/img.shape[0]) + " ")
+                    file.write(str(pair[1]/img.shape[1]) + " ")
                     
-            #         #all top points are visible so we write true after each pair
-            #         file.write("1 ")
+                    #all top points are visible so we write true after each pair
+                    file.write("1 ")
                     
-            #     #write bottom pixels
-            #     for ind, pair in enumerate(bottom_pixels):
-            #         file.write(str(pair[0]/img.shape[0]) + " ")
-            #         file.write(str(pair[1]/img.shape[1]) + " ")
+                #write bottom pixels
+                for ind, pair in enumerate(bottom_pixels):
+                    file.write(str(pair[0]/img.shape[0]) + " ")
+                    file.write(str(pair[1]/img.shape[1]) + " ")
                     
-            #         #writes the visibility of that pair
-            #         file.write(visible[ind] + " ")
+                    #writes the visibility of that pair
+                    file.write(visible[ind] + " ")
                     
             img_index+=1
     
@@ -176,7 +176,7 @@ if __name__ == "__main__":
     
     img_index = 0
     for ind, color in enumerate(colors):
-        # path = "/home/jared/SeniorDesign/images/raw_images/"+color+"/rgb"
-        path = "images/raw_images/"+color+"/rgb"
+        path = "/home/jared/SeniorDesign/images/raw_images/"+color+"/rgb"
+        #path = "images/raw_images/"+color+"/rgb"
 
         img_index = parseRawToTraining(path, color, numbers[ind], img_index)
